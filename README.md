@@ -54,6 +54,7 @@ In the shell window you're working in, export the token and other environment va
 **PERCY_TOKEN** is used by percy to identify the project and create the builds.
 
 **Note:** In case of web projects, token will start with ***web_*** keyword.
+
 **Note:** In case of automate projects, token will start with ***auto_*** keyword.
 
 **Unix**
@@ -120,6 +121,7 @@ On completion of the script, you would be able to see the your percy build. Sinc
 
 ### Step 5
 
+Go to Percy Dashboard and ensure that your base build is approved.
 Now in order to make comparisons happen we need to make changes to the existing website so that a visual change can occur you can go to file in `test.py` and make changes.
 Or else just run `after_test.py`, we have already made visual changes in this script. If you run the `after_test.py` script in tests, this would create few visual changes and would get compared to the last build and we would be able to see few diffs.
 
