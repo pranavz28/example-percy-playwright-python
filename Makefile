@@ -1,31 +1,20 @@
-VENV=.venv/bin
-NPM=node_modules/.bin
-REQUIREMENTS=$(wildcard requirements.txt)
-MARKER=.initialized-with-makefile
-VENVDEPS=$(REQUIREMENTS setup.py)
-NPMDEPS=$(package-lock.json)
+# Define variables for the virtual environment directory
+VENV = env
+PYTHON = $(VENV)/bin/python
+PIP = $(VENV)/bin/pip
 
+# Create the virtual environment
 $(VENV):
-	python3 -m venv .venv
-	$(VENV)/python3 -m pip install --upgrade pip
+	python3 -m venv $(VENV)
 
-$(VENV)/$(MARKER): $(VENVDEPS) | $(VENV)
-	$(VENV)/pip3 install $(foreach path,$(REQUIREMENTS),-r $(path))
-	touch $(VENV)/$(MARKER)
+# Install Python dependencies
+install-py: $(VENV)
+	$(PIP) install -r requirements.txt
 
-$(NPM): $(NPMDEPS)
+# Install NPM dependencies
+install-npm:
 	npm install
 
-# .PHONY: venv npm install clean test-android test-ios
-
-install: $(VENV)/$(MARKER)
-# npm: $(NPM)
-
-# install: npm venv
-
-test: 
-	npx percy exec -- python3 tests/automate/test.py
-	
-
-after-test:
-	npx percy exec -- python3 tests/automate/after_test.py
+# Run Percy tests
+test: $(VENV)
+	npx percy exec -- $(PYTHON) tests/automate/test.py
