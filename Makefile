@@ -10,7 +10,7 @@ $(VENV):
 	$(VENV)/python3 -m pip install --upgrade pip
 
 $(VENV)/$(MARKER): $(VENVDEPS) | $(VENV)
-	$(VENV)/pip install $(foreach path,$(REQUIREMENTS),-r $(path))
+	$(VENV)/pip3 install $(foreach path,$(REQUIREMENTS),-r $(path))
 	touch $(VENV)/$(MARKER)
 
 $(NPM): $(NPMDEPS)
