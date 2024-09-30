@@ -13,8 +13,8 @@ $(VENV)/$(MARKER): $(VENVDEPS) | $(VENV)
 	$(VENV)/pip install $(foreach path,$(REQUIREMENTS),-r $(path))
 	touch $(VENV)/$(MARKER)
 
-# $(NPM): $(NPMDEPS)
-# 	npm install
+$(NPM): $(NPMDEPS)
+	npm install
 
 # .PHONY: venv npm install clean test-android test-ios
 
