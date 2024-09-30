@@ -24,7 +24,8 @@ install: $(VENV)/$(MARKER)
 # install: npm venv
 
 test: 
-	npx percy exec -- $(VENV)/python3 tests/automate/test.py
+	npx percy exec -- python3 tests/automate/test.py
+	
 
 after-test:
-	npx percy exec -- $(VENV)/python3 tests/automate/after_test.py
+	npx percy exec -- python3 tests/automate/after_test.py
