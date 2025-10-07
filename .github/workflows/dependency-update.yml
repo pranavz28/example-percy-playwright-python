@@ -56,7 +56,7 @@ jobs:
 
       - name: Bump Node deps to latest stable (incl. @percy/cli)
         run: |
-          npx --yes npm-check-updates@latest -u --target latest --rejectPrerelease
+          npx --yes npm-check-updates@latest -u --target latest
           # ensure percy CLI is present and latest stable
           npm install --save-dev @percy/cli@latest
           npm install
