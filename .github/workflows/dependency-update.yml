@@ -88,6 +88,11 @@ jobs:
         with:
           ref: ${{ env.UPDATE_BRANCH }}
 
+      - name: Install Node deps (PR branch)
+        if: ${{ steps.cpr.outputs.pull-request-number != '' }}
+        run: |
+          npm ci || npm install
+
       - name: Re-create venv & install Python deps (PR branch)
         if: ${{ steps.cpr.outputs.pull-request-number != '' }}
         run: |
