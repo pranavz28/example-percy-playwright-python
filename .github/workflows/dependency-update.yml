@@ -147,7 +147,7 @@ jobs:
             exit 0
           fi
           # Run test and capture percy output to file
-          ( npx percy exec -- python3 tests/web/test.py ) 2>&1 | tee percy_web.log
+          ( source .venv/bin/activate && npx percy exec -- python3 tests/web/test.py ) 2>&1 | tee percy_web.log
           # Extract finalized build URL/ID from CLI output
           URL=$(grep -Eo 'https://percy.io[^ ]+' percy_web.log | tail -n1 || true)
           ID=$(grep -Eo 'Finalized build #[0-9]+' percy_web.log | grep -Eo '[0-9]+' | tail -n1 || true)
@@ -167,7 +167,7 @@ jobs:
             echo "Missing one or more Automate secrets; skipping Percy on Automate."
             exit 0
           fi
-          ( npx percy exec -- python3 tests/automate/test.py ) 2>&1 | tee percy_auto.log
+          ( source .venv/bin/activate && npx percy exec -- python3 tests/automate/test.py ) 2>&1 | tee percy_auto.log
           URL=$(grep -Eo 'https://percy.io[^ ]+' percy_auto.log | tail -n1 || true)
           ID=$(grep -Eo 'Finalized build #[0-9]+' percy_auto.log | grep -Eo '[0-9]+' | tail -n1 || true)
           echo "url=${URL}" >> $GITHUB_OUTPUT
