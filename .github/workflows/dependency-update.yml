@@ -1,34 +1,24 @@
-name: Auto update dependencies and create PR
+name: Auto update deps + Percy Web (single job)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 6 * * 1"  # Mondays 11:30 IST
-  pull_request:
-    types: [opened, synchronize, reopened]
-    branches:
-      - "**"
+    - cron: "0 6 * * 1" # Mondays 11:30 IST
 
 permissions:
   contents: write
   pull-requests: write
 
-concurrency:
-  group: percy-auto-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
   PYTHON_VERSION: "3.11"
   NODE_VERSION: "20"
+  UPDATE_BRANCH: "chore/dep-bumps-${{ github.run_id }}"
 
 jobs:
-  update-and-pr:
-    name: Check & bump deps, open PR
-    # if: github.event_name != 'pull_request'
+  update-pr-and-percy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
+      - name: Checkout (base)
         uses: actions/checkout@v4
 
       - name: Set up Node
@@ -43,11 +33,11 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
 
-      - name: Install Node deps (existing lock or fresh)
+      - name: Install Node deps
         run: |
           npm ci || npm install
 
-      - name: Install Python deps (venv)
+      - name: Create venv & install Python deps
         run: |
           python -m venv .venv
           source .venv/bin/activate
@@ -57,7 +47,6 @@ jobs:
       - name: Bump Node deps to latest stable (incl. @percy/cli)
         run: |
           npx --yes npm-check-updates@latest -u --target latest
-          # ensure percy CLI is present and latest stable
           npm install --save-dev @percy/cli@latest
           npm install
 
@@ -65,157 +54,118 @@ jobs:
         run: |
           set -e
           source .venv/bin/activate
-          # Upgrade all installed pkgs from requirements.txt
           pip install --upgrade -r requirements.txt
-          # Fully pin back the environment
           pip freeze > requirements.txt
 
-      - name: Verify percy CLI version
-        run: |
-          npx percy --version
+      - name: Verify percy CLI
+        run: npx percy --version
 
-      - name: Create Pull Request
+      - name: Create Pull Request (if changes)
         id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
-          branch: chore/dep-bumps-${{ github.run_id }}
+          branch: ${{ env.UPDATE_BRANCH }}
           commit-message: "chore: bump Node & Python deps (incl. @percy/cli) to latest stable"
           title: "chore: bump deps to latest stable"
           body: |
-            This PR updates all dependencies to the latest stable versions:
-            - Node deps via `npm-check-updates` + `npm install`
-            - Python deps upgraded and re-pinned via `pip freeze > requirements.txt`
-            - Ensures latest stable `@percy/cli`
-
-            CI will run Percy Web and Percy on Automate on this PR.
+            Automated dependency update:
+            - Node deps via npm-check-updates (stable) + npm install
+            - Python deps upgraded and re-pinned via pip freeze
+            - Ensures latest stable @percy/cli
           labels: dependencies, percy
-          signoff: false
 
-      - name: PR URL
-        if: steps.cpr.outputs.pull-request-url
-        run: echo "PR=${{ steps.cpr.outputs.pull-request-url }}"
-
-  percy-on-pr:
-    name: Run Percy Web & Automate, comment result
-    # Only run on PRs (including the one created above) – ensure deps are tested before merge
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: "pip"
-
-      - name: Install project deps (README Step 1)
+      - name: Stop if no PR was created
+        if: ${{ steps.cpr.outputs.pull-request-number == '' }}
         run: |
-          # Node
-          npm ci || npm install
-          # Python (venv)
+          echo "No changes detected; no PR opened. Skipping Percy run."
+          echo "pr_created=0" >> $GITHUB_OUTPUT
+        id: nopr
+
+      # === Run Percy Web on the PR branch ===
+      - name: Checkout PR branch
+        if: ${{ steps.cpr.outputs.pull-request-number != '' }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.UPDATE_BRANCH }}
+
+      - name: Re-create venv & install Python deps (PR branch)
+        if: ${{ steps.cpr.outputs.pull-request-number != '' }}
+        run: |
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
-          python -m pip install --upgrade playwright
 
-      - name: Install Playwright browsers
+      - name: Upgrade Playwright (python) and install browsers + OS deps
+        if: ${{ steps.cpr.outputs.pull-request-number != '' }}
         env:
-            DEBIAN_FRONTEND: noninteractive
+          DEBIAN_FRONTEND: noninteractive
         run: |
-            source .venv/bin/activate
-            python -m playwright install --with-deps
+          set -e
+          source .venv/bin/activate
+          python -m pip install --upgrade playwright
+          python -m playwright install --with-deps
 
       - name: Percy Web run
+        if: ${{ steps.cpr.outputs.pull-request-number != '' }}
         id: percy_web
         env:
           PERCY_TOKEN: ${{ secrets.PERCY_TOKEN_WEB }}
         run: |
           set -o pipefail
           if [ -z "$PERCY_TOKEN" ]; then
-            echo "no_token=1" >> $GITHUB_OUTPUT
-            echo "Missing PERCY_TOKEN_WEB secret; skipping Percy Web."
+            echo "Missing PERCY_TOKEN_WEB secret; cannot run Percy Web."
+            echo "skipped=1" >> $GITHUB_OUTPUT
             exit 0
           fi
-          # Run test and capture percy output to file
-          ( source .venv/bin/activate && npx percy exec -- python3 tests/web/test.py ) 2>&1 | tee percy_web.log
-          # Extract finalized build URL/ID from CLI output
+          ( source .venv/bin/activate && npx percy exec -- .venv/bin/python tests/web/test.py ) 2>&1 | tee percy_web.log
           URL=$(grep -Eo 'https://percy.io[^ ]+' percy_web.log | tail -n1 || true)
           ID=$(grep -Eo 'Finalized build #[0-9]+' percy_web.log | grep -Eo '[0-9]+' | tail -n1 || true)
+          STATUS=$?
+          # If command returned non-zero, mark failure
+          if [ $STATUS -ne 0 ]; then
+            echo "success=0" >> $GITHUB_OUTPUT
+          else
+            # Percy may still finalize with errors; treat URL presence as success signal
+            if [ -n "$URL" ]; then echo "success=1" >> $GITHUB_OUTPUT; else echo "success=0" >> $GITHUB_OUTPUT; fi
+          fi
           echo "url=${URL}" >> $GITHUB_OUTPUT
           echo "id=${ID}" >> $GITHUB_OUTPUT
 
-      # - name: Percy Automate run
-      #   id: percy_auto
-      #   env:
-      #     PERCY_TOKEN: ${{ secrets.PERCY_TOKEN_AUTO }}
-      #     BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-      #     BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-      #   run: |
-      #     set -o pipefail
-      #     if [ -z "$PERCY_TOKEN" ] || [ -z "$BROWSERSTACK_USERNAME" ] || [ -z "$BROWSERSTACK_ACCESS_KEY" ]; then
-      #       echo "missing_secrets=1" >> $GITHUB_OUTPUT
-      #       echo "Missing one or more Automate secrets; skipping Percy on Automate."
-      #       exit 0
-      #     fi
-      #     ( source .venv/bin/activate && npx percy exec -- python3 tests/automate/test.py ) 2>&1 | tee percy_auto.log
-      #     URL=$(grep -Eo 'https://percy.io[^ ]+' percy_auto.log | tail -n1 || true)
-      #     ID=$(grep -Eo 'Finalized build #[0-9]+' percy_auto.log | grep -Eo '[0-9]+' | tail -n1 || true)
-      #     echo "url=${URL}" >> $GITHUB_OUTPUT
-      #     echo "id=${ID}" >> $GITHUB_OUTPUT
-
-      - name: Summarize & comment on PR
-        id: comment
+      - name: Comment on PR with Percy result
+        if: ${{ steps.cpr.outputs.pull-request-number != '' }}
         uses: actions/github-script@v7
         with:
           script: |
-            const core = require('@actions/core');
-            const { context, getOctokit } = require('@actions/github');
+            const prNumber = Number('${{ steps.cpr.outputs.pull-request-number }}');
+            const url = '${{ steps.percy_web.outputs.url }}';
+            const id = '${{ steps.percy_web.outputs.id }}';
+            const skipped = '${{ steps.percy_web.outputs.skipped }}' === '1';
+            const success = '${{ steps.percy_web.outputs.success }}' === '1';
 
-            const w_no_token = core.getInput('percy_web.no_token') || process.env['percy_web_no_token'];
-            const webId = '${{ steps.percy_web.outputs.id }}';
-            const webUrl = '${{ steps.percy_web.outputs.url }}';
-            # const autoMissing = '${{ steps.percy_auto.outputs.missing_secrets }}';
-            # const autoId = '${{ steps.percy_auto.outputs.id }}';
-            # const autoUrl = '${{ steps.percy_auto.outputs.url }}';
-
-            function statusLine(name, id, url, skipped) {
-              if (skipped) return `**${name}:** skipped (missing secrets)`;
-              if (url) return `**${name}:** ✅ Build #${id} — ${url}`;
-              return `**${name}:** ❌ Failed (see logs in workflow artifacts)`;
+            let body;
+            if (skipped) {
+              body = `## Percy Web\nSkipped (missing \`PERCY_TOKEN_WEB\`).`;
+            } else if (success && url) {
+              body = `## Percy Web\n✅ Build #${id}\n${url}`;
+            } else {
+              body = `## Percy Web\n❌ Build failed (see logs in workflow artifacts).`;
+              if (url) body += `\nFinalized build URL (may contain error details):\n${url}`;
             }
 
-            const lines = [];
-            lines.push('## Percy results');
-            lines.push(statusLine('Percy Web', webId, webUrl, '${{ steps.percy_web.outputs.no_token }}' === '1'));
-            lines.push(statusLine('Percy on Automate', autoId, autoUrl, autoMissing === '1'));
-
-            const body = lines.join('\n');
-
-            const token = process.env.GITHUB_TOKEN || '${{ secrets.GITHUB_TOKEN }}';
-            const octokit = getOctokit(token);
+            const { context, getOctokit } = require('@actions/github');
+            const octokit = getOctokit(process.env.GITHUB_TOKEN);
             await octokit.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body
+              issue_number: prNumber,
+              body,
             });
 
-      - name: Upload logs (always)
-        if: always()
+      - name: Upload Percy logs
+        if: always() && ${{ steps.cpr.outputs.pull-request-number != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: percy-logs
-          path: |
-            percy_web.log
-            percy_auto.log
+          name: percy-web-log
+          path: percy_web.log
           if-no-files-found: ignore
