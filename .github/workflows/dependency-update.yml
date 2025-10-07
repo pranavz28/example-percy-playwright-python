@@ -126,14 +126,14 @@ jobs:
           source .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python -m pip install --upgrade playwright
 
-      - name: Install Playwright browsers & deps
-        uses: microsoft/playwright-github-action@v1
-
-      - name: Ensure playwright (python) knows browsers are installed
+      - name: Install Playwright browsers
+        env:
+            DEBIAN_FRONTEND: noninteractive
         run: |
             source .venv/bin/activate
-            python -c "import playwright; print('Playwright py ok')"
+            python -m playwright install --with-deps
 
       - name: Percy Web run
         id: percy_web
