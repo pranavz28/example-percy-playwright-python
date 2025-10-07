@@ -24,7 +24,7 @@ env:
 jobs:
   update-and-pr:
     name: Check & bump deps, open PR
-    if: github.event_name != 'pull_request'
+    # if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -98,7 +98,7 @@ jobs:
   percy-on-pr:
     name: Run Percy Web & Automate, comment result
     # Only run on PRs (including the one created above) – ensure deps are tested before merge
-    if: github.event_name == 'pull_request'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
