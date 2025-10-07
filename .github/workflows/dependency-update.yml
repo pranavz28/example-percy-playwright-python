@@ -154,24 +154,24 @@ jobs:
           echo "url=${URL}" >> $GITHUB_OUTPUT
           echo "id=${ID}" >> $GITHUB_OUTPUT
 
-      - name: Percy Automate run
-        id: percy_auto
-        env:
-          PERCY_TOKEN: ${{ secrets.PERCY_TOKEN_AUTO }}
-          BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
-          BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
-        run: |
-          set -o pipefail
-          if [ -z "$PERCY_TOKEN" ] || [ -z "$BROWSERSTACK_USERNAME" ] || [ -z "$BROWSERSTACK_ACCESS_KEY" ]; then
-            echo "missing_secrets=1" >> $GITHUB_OUTPUT
-            echo "Missing one or more Automate secrets; skipping Percy on Automate."
-            exit 0
-          fi
-          ( source .venv/bin/activate && npx percy exec -- python3 tests/automate/test.py ) 2>&1 | tee percy_auto.log
-          URL=$(grep -Eo 'https://percy.io[^ ]+' percy_auto.log | tail -n1 || true)
-          ID=$(grep -Eo 'Finalized build #[0-9]+' percy_auto.log | grep -Eo '[0-9]+' | tail -n1 || true)
-          echo "url=${URL}" >> $GITHUB_OUTPUT
-          echo "id=${ID}" >> $GITHUB_OUTPUT
+      # - name: Percy Automate run
+      #   id: percy_auto
+      #   env:
+      #     PERCY_TOKEN: ${{ secrets.PERCY_TOKEN_AUTO }}
+      #     BROWSERSTACK_USERNAME: ${{ secrets.BROWSERSTACK_USERNAME }}
+      #     BROWSERSTACK_ACCESS_KEY: ${{ secrets.BROWSERSTACK_ACCESS_KEY }}
+      #   run: |
+      #     set -o pipefail
+      #     if [ -z "$PERCY_TOKEN" ] || [ -z "$BROWSERSTACK_USERNAME" ] || [ -z "$BROWSERSTACK_ACCESS_KEY" ]; then
+      #       echo "missing_secrets=1" >> $GITHUB_OUTPUT
+      #       echo "Missing one or more Automate secrets; skipping Percy on Automate."
+      #       exit 0
+      #     fi
+      #     ( source .venv/bin/activate && npx percy exec -- python3 tests/automate/test.py ) 2>&1 | tee percy_auto.log
+      #     URL=$(grep -Eo 'https://percy.io[^ ]+' percy_auto.log | tail -n1 || true)
+      #     ID=$(grep -Eo 'Finalized build #[0-9]+' percy_auto.log | grep -Eo '[0-9]+' | tail -n1 || true)
+      #     echo "url=${URL}" >> $GITHUB_OUTPUT
+      #     echo "id=${ID}" >> $GITHUB_OUTPUT
 
       - name: Summarize & comment on PR
         id: comment
@@ -184,9 +184,9 @@ jobs:
             const w_no_token = core.getInput('percy_web.no_token') || process.env['percy_web_no_token'];
             const webId = '${{ steps.percy_web.outputs.id }}';
             const webUrl = '${{ steps.percy_web.outputs.url }}';
-            const autoMissing = '${{ steps.percy_auto.outputs.missing_secrets }}';
-            const autoId = '${{ steps.percy_auto.outputs.id }}';
-            const autoUrl = '${{ steps.percy_auto.outputs.url }}';
+            # const autoMissing = '${{ steps.percy_auto.outputs.missing_secrets }}';
+            # const autoId = '${{ steps.percy_auto.outputs.id }}';
+            # const autoUrl = '${{ steps.percy_auto.outputs.url }}';
 
             function statusLine(name, id, url, skipped) {
               if (skipped) return `**${name}:** skipped (missing secrets)`;
