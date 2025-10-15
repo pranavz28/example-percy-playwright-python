@@ -42,14 +42,18 @@ jobs:
           npm install --save-dev @percy/cli@latest
           npm install
 
-      - name: Update Python Dependencies and Regenerate Requirements
+      - name: Update Python Dependencies to Latest Versions
         run: |
           set -e
+          # Install pur (Python requirements.txt updater)
+          pip install --upgrade pip pur
+          # Update version pins in requirements.txt to latest releases
+          pur -r requirements.txt
+          # Verify the updated requirements can be installed
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install --upgrade -r requirements.txt
-          pip freeze > requirements.txt
+          pip install -r requirements.txt
+          deactivate
           rm -rf .venv
 
       - name: Verify Percy CLI Installation
@@ -64,9 +68,10 @@ jobs:
           title: "chore: bump deps to latest stable"
           body: |
             Automated dependency update:
-            - Node deps via npm-check-updates (stable) + npm install
-            - Python deps upgraded and re-pinned via pip freeze
-            - Ensures latest stable @percy/cli
+            - Node.js dependencies updated via npm-check-updates to latest stable versions
+            - Python dependencies updated via pur to latest stable versions
+            - Ensures latest stable @percy/cli is installed
+            - All updates verified by installation tests
           labels: dependencies, percy
 
   visual-regression-testing:
