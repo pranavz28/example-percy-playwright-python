@@ -107,36 +107,14 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
 
-      - name: Upgrade Playwright to Latest for Ubuntu 24.04 Compatibility
+      - name: Install Playwright Browsers and System Dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
+          set -e
           source .venv/bin/activate
           python -m pip install --upgrade playwright
-
-      - name: Get Playwright Version
-        id: playwright-version
-        run: |
-          source .venv/bin/activate
-          VERSION=$(python -c "import playwright; print(playwright.__version__)")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Cache Playwright Browsers
-        uses: actions/cache@v4
-        id: playwright-cache
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-
-      - name: Install Playwright System Dependencies
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          source .venv/bin/activate
-          python -m playwright install-deps
-
-      - name: Install Playwright Browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: |
-          source .venv/bin/activate
-          python -m playwright install
+          python -m playwright install --with-deps
 
       - name: Execute Percy Visual Regression Tests
         id: percy_web
