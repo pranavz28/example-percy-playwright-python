@@ -48,11 +48,11 @@ jobs:
           echo "=== Before update ==="
           cat requirements.txt
 
-          # Install pip-upgrader (more aggressive updater)
+          # Install pip-upgrader and automatically select "all" packages
           pip install --upgrade pip pip-upgrader
 
-          # Update to latest versions (removes wildcards and pins to latest)
-          pip-upgrade --skip-package-installation
+          # Pipe "all" to select all packages non-interactively
+          echo "all" | pip-upgrade --skip-package-installation
 
           echo "=== After update ==="
           cat requirements.txt
@@ -77,7 +77,7 @@ jobs:
           body: |
             Automated dependency update:
             - Node.js dependencies updated via npm-check-updates to latest stable versions
-            - Python dependencies updated via pur to latest stable versions
+            - Python dependencies updated to latest versions from PyPI
             - Ensures latest stable @percy/cli is installed
             - All updates verified by installation tests
           labels: dependencies, percy
