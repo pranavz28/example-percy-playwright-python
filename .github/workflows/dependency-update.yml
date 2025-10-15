@@ -107,13 +107,22 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
 
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright Browsers and System Dependencies
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
           set -e
           source .venv/bin/activate
-          python -m pip install --upgrade playwright
           python -m playwright install --with-deps
 
       - name: Execute Percy Visual Regression Tests
