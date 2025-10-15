@@ -45,10 +45,18 @@ jobs:
       - name: Update Python Dependencies to Latest Versions
         run: |
           set -e
-          # Install pur (Python requirements.txt updater)
-          pip install --upgrade pip pur
-          # Update version pins in requirements.txt to latest releases
-          pur -r requirements.txt
+          echo "=== Before update ==="
+          cat requirements.txt
+
+          # Install pip-upgrader (more aggressive updater)
+          pip install --upgrade pip pip-upgrader
+
+          # Update to latest versions (removes wildcards and pins to latest)
+          pip-upgrade --skip-package-installation
+
+          echo "=== After update ==="
+          cat requirements.txt
+
           # Verify the updated requirements can be installed
           python -m venv .venv
           source .venv/bin/activate
@@ -107,11 +115,8 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install -r requirements.txt
 
-      - name: Install Playwright Browsers and System Dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
+      - name: Upgrade Playwright and Install Browsers
         run: |
-          set -e
           source .venv/bin/activate
           python -m pip install --upgrade playwright
           python -m playwright install --with-deps
