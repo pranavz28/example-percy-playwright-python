@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx percy snapshot ./site",
+  "buildCommand": "npx percy upload ./shots || true",
   "outputDirectory": "site",
   "installCommand": "npm ci --no-audit --no-fund",
   "framework": null
