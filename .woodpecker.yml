@@ -1,0 +1,10 @@
+labels:
+  platform: linux/amd64
+
+steps:
+  percy:
+    image: node:20
+    commands:
+      - npm ci --no-audit --no-fund
+      - npx percy snapshot ./site
+    secrets: [PERCY_TOKEN]
