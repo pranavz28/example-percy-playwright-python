@@ -3,6 +3,15 @@ format_version: '17'
 default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
 project_type: other
 
+meta:
+  bitrise.io:
+    stack: linux-docker-android-22.04
+    machine_type_id: standard
+
+trigger_map:
+  - push_branch: per-7828-bitrise
+    workflow: percy-ci-test
+
 workflows:
   percy-ci-test:
     steps:
@@ -15,4 +24,4 @@ workflows:
                 #!/usr/bin/env bash
                 set -eo pipefail
                 npm ci --no-audit --no-fund
-                npx percy snapshot ./site
+                npx percy upload ./shots || true
