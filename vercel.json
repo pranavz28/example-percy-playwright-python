@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx percy upload ./shots || true",
+  "buildCommand": "env | grep -E '^VERCEL|^CI=|^PERCY' | sort; npx percy upload ./shots || true",
   "outputDirectory": "site",
   "installCommand": "npm ci --no-audit --no-fund",
   "framework": null
