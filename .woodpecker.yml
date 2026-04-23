@@ -1,5 +1,6 @@
 when:
-  branch: per-7828-woodpecker
+  - branch: per-7828-woodpecker
+    event: [push, manual]
 
 steps:
   percy:
@@ -9,5 +10,5 @@ steps:
       - npx percy upload ./shots || true
     environment:
       PERCY_PARALLEL_TOTAL: "-1"
-    secrets:
-      - PERCY_TOKEN
+      PERCY_TOKEN:
+        from_secret: PERCY_TOKEN
