@@ -1,0 +1,18 @@
+---
+format_version: '17'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: other
+
+workflows:
+  percy-ci-test:
+    steps:
+      - activate-ssh-key@4: {}
+      - git-clone@8: {}
+      - script@1:
+          title: Percy snapshot
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -eo pipefail
+                npm ci --no-audit --no-fund
+                npx percy snapshot ./site
