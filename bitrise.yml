@@ -14,8 +14,9 @@ trigger_map:
 workflows:
   percy-ci-test:
     steps:
-      - activate-ssh-key@4: {}
-      - git-clone@8: {}
+      - git-clone@8:
+          inputs:
+            - clone_into_dir: "."
       - script@1:
           title: Percy upload
           inputs:
