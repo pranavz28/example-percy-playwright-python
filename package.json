@@ -2,5 +2,8 @@
   "private": true,
   "devDependencies": {
     "@percy/cli": "^1.30.11"
+  },
+  "overrides": {
+    "@percy/env": "file:./vendor/percy-env-1.31.13-per7828-test.0.tgz"
   }
 }
