@@ -52,9 +52,10 @@ UA="$(echo "$RESP" | jq -r '.data.attributes."user-agent" // ""')"
 #   "Percy/v1 @percy/cli/1.31.12 (node/v20; python/3.9; teamcity)"  → teamcity
 #   "Percy/v1 @percy/cli/1.31.12 (node/v20; darwin)"                 → darwin (fallback — no CI)
 ACT_CI="$(echo "$UA" | awk -F'[()]' '{print $(NF-1)}' | awk -F';' '{gsub(/^ +| +$/,"",$NF); print $NF}')"
-# Normalize: if the last token is a pure platform like 'darwin', 'linux', 'win32', treat as null.
+# Normalize: platform identifiers and tokens with slashes (e.g. node/v20) are not CI slugs.
 case "$ACT_CI" in
   darwin|linux|win32|freebsd|openbsd|"") ACT_CI="null" ;;
+  */*) ACT_CI="null" ;;
 esac
 
 ACT_BRANCH="$(echo "$RESP" | jq -r '.data.attributes.branch // "null"')"
