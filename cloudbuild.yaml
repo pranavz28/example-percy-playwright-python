@@ -3,6 +3,8 @@ serviceAccount: 'projects/epoch-lag/serviceAccounts/percy-ci-test@epoch-lag.iam.
 steps:
   - name: node:20
     env:
+      - 'BUILD_ID=$BUILD_ID'
+      - 'PROJECT_ID=$PROJECT_ID'
       - 'BRANCH_NAME=per-7828-gcb'
       - 'COMMIT_SHA=$_GIT_COMMIT_SHA'
       - 'PERCY_PARALLEL_TOTAL=-1'
