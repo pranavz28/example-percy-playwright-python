@@ -1,0 +1,18 @@
+steps:
+  - name: node:20
+    env:
+      - 'BRANCH_NAME=per-7828-gcb'
+      - 'COMMIT_SHA=$_GIT_COMMIT_SHA'
+      - 'PERCY_PARALLEL_TOTAL=-1'
+      - 'PERCY_TOKEN=$_PERCY_TOKEN'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        set -e
+        npm install --no-audit --no-fund
+        npx percy upload ./shots || true
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  substitution_option: ALLOW_LOOSE
